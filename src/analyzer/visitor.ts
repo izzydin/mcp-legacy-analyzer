@@ -55,6 +55,71 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           column: path.node.loc?.start.column ?? -1
         });
       }
+
+      // Check for .map() calls inside JSX
+      if (t.isMemberExpression(callee) && t.isIdentifier(callee.property) && callee.property.name === 'map') {
+        const inJSX = path.findParent(p => p.isJSXExpressionContainer());
+        if (inJSX) {
+          const argsPaths = path.get('arguments');
+          if (Array.isArray(argsPaths) && argsPaths.length > 0) {
+            const callbackPath = argsPaths[0];
+            
+            if (callbackPath.isArrowFunctionExpression() || callbackPath.isFunctionExpression()) {
+              let returnedJSXPaths: any[] = [];
+              
+              if (callbackPath.isArrowFunctionExpression()) {
+                const bodyPath = callbackPath.get('body');
+                if (bodyPath.isJSXElement() || bodyPath.isJSXFragment()) {
+                  returnedJSXPaths.push(bodyPath);
+                }
+              }
+              
+              if (returnedJSXPaths.length === 0) {
+                callbackPath.traverse({
+                  ReturnStatement(retPath) {
+                    const argPath = retPath.get('argument');
+                    if (argPath && (argPath.isJSXElement() || argPath.isJSXFragment())) {
+                      returnedJSXPaths.push(argPath);
+                    }
+                  },
+                  Function(funcPath) {
+                    funcPath.skip();
+                  }
+                });
+              }
+
+              for (const jsxPath of returnedJSXPaths) {
+                const node = jsxPath.node;
+                let hasKey = false;
+                
+                if (t.isJSXElement(node)) {
+                  hasKey = node.openingElement.attributes.some(attr => 
+                    t.isJSXAttribute(attr) && attr.name.name === 'key'
+                  );
+                }
+                
+                if (!hasKey) {
+                  const result: AnalysisResult = {
+                    type: 'MISSING_KEY',
+                    severity: 'high',
+                    line: node.loc?.start.line ?? -1,
+                    suggestion: 'Provide a unique "key" prop for elements in a list. Avoid array indices.'
+                  };
+
+                  state.report({
+                    ruleId: result.type,
+                    severity: 'error',
+                    message: 'Missing "key" prop for element returned from .map() inside JSX.',
+                    action: result.suggestion,
+                    line: result.line,
+                    column: node.loc?.start.column ?? -1
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 };

@@ -6,6 +6,7 @@ import { ComponentVisitor } from './analyzer/visitors/ComponentVisitor.js';
 import { AnalysisEngine } from './analyzer/engine.js';
 import { GhostHunterRule } from './analyzer/rules/GhostHunterRule.js';
 import { ConcurrentScoutRule } from './analyzer/rules/ConcurrentScoutRule.js';
+import { AntiPatternVisitorRule } from './analyzer/visitor.js';
 import { Reporter } from './utils/reporter.js';
 import fs from 'fs';
 export class AnalyzerServer {
@@ -85,7 +86,7 @@ export class AnalyzerServer {
                 try {
                     const ast = parseSourceCode(sourceCode);
                     const engine = new AnalysisEngine();
-                    engine.registerRules([GhostHunterRule, ConcurrentScoutRule]);
+                    engine.registerRules([GhostHunterRule, ConcurrentScoutRule, AntiPatternVisitorRule]);
                     const context = engine.execute(ast);
                     const report = Reporter.generateHealthReport(context.diagnostics);
                     return {
