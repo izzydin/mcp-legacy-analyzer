@@ -6,3 +6,12 @@ export const AnalyzeInputSchema = z.object({
 });
 
 export type AnalyzeInput = z.infer<typeof AnalyzeInputSchema>;
+
+export const ComponentStructureInputSchema = z.object({
+  code: z.string().optional(),
+  filePath: z.string().optional(),
+}).refine(data => data.code || data.filePath, {
+  message: "Either 'code' or 'filePath' must be provided.",
+});
+
+export type ComponentStructureInput = z.infer<typeof ComponentStructureInputSchema>;

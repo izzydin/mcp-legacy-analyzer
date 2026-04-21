@@ -5,7 +5,10 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { AnalyzeInputSchema } from './types/schemas.js';
+import { AnalyzeInputSchema, ComponentStructureInputSchema } from './types/schemas.js';
+import { parseSourceCode } from './utils/parser.js';
+import { ComponentVisitor } from './analyzer/visitors/ComponentVisitor.js';
+import fs from 'fs';
 
 export class AnalyzerServer {
   private server: Server;
@@ -54,34 +57,89 @@ export class AnalyzerServer {
             required: ['code'],
           },
         },
+        {
+          name: 'analyze_component_structure',
+          description: 'Analyzes the component structure of a React codebase file',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              filePath: {
+                type: 'string',
+                description: 'Path to the source code file'
+              },
+              code: {
+                type: 'string',
+                description: 'Source code string to analyze'
+              }
+            }
+          }
+        }
       ],
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (request.params.name !== 'analyze_legacy_code') {
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}`
-        );
+      if (request.params.name === 'analyze_legacy_code') {
+        const input = AnalyzeInputSchema.safeParse(request.params.arguments);
+        if (!input.success) {
+          throw new McpError(ErrorCode.InvalidParams, `Invalid arguments: ${input.error.message}`);
+        }
+        return {
+          content: [{ type: 'text', text: 'Hola Jack, estoy listo para analizar tu código legacy' }],
+        };
       }
 
-      const input = AnalyzeInputSchema.safeParse(request.params.arguments);
-      
-      if (!input.success) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Invalid arguments: ${input.error.message}`
-        );
+      if (request.params.name === 'analyze_component_structure') {
+        const input = ComponentStructureInputSchema.safeParse(request.params.arguments);
+        if (!input.success) {
+          throw new McpError(ErrorCode.InvalidParams, `Invalid arguments: ${input.error.message}`);
+        }
+
+        let sourceCode = input.data.code;
+        if (!sourceCode && input.data.filePath) {
+          try {
+            sourceCode = fs.readFileSync(input.data.filePath, 'utf-8');
+          } catch (err: any) {
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({ error: `Failed to read file at ${input.data.filePath}: ${err.message}` }, null, 2)
+              }],
+              isError: true,
+            };
+          }
+        }
+
+        try {
+          // Fallback parsing gracefully
+          const ast = parseSourceCode(sourceCode!);
+          const components = ComponentVisitor.extractComponents(ast);
+          
+          const classCount = components.filter(c => c.type === 'Class').length;
+          const functionalCount = components.filter(c => c.type === 'Functional').length;
+
+          const report = {
+            summary: `Found ${classCount} Class Component(s), ${functionalCount} Functional Component(s)`,
+            components: components
+          };
+
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify(report, null, 2)
+            }]
+          };
+        } catch (err: any) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({ error: `Graceful Fallback - Failed to parse code: ${err.message}` }, null, 2)
+            }],
+            isError: true,
+          };
+        }
       }
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Hola Jack, estoy listo para analizar tu código legacy',
-          },
-        ],
-      };
+      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
     });
   }
 

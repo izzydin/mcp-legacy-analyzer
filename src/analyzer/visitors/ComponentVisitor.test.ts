@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ComponentVisitor } from './ComponentVisitor';
-import { parseSourceCode } from '../../utils/parser';
+import { ComponentVisitor } from './ComponentVisitor.js';
+import { parseSourceCode } from '../../utils/parser.js';
 
 // --- Mock Data ---
 
