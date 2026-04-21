@@ -120,6 +120,54 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           }
         }
       }
+      // Check for fetch() calls
+      const isFetch = 
+        (t.isIdentifier(callee) && callee.name === 'fetch') ||
+        (t.isMemberExpression(callee) && t.isIdentifier(callee.object) && callee.object.name === 'window' && t.isIdentifier(callee.property) && callee.property.name === 'fetch');
+
+      if (isFetch) {
+        let isHandled = false;
+        let currentPath: any = path;
+
+        // Check for .catch() in the promise chain
+        while (
+          currentPath.parentPath && currentPath.parentPath.isMemberExpression() &&
+          currentPath.parentPath.parentPath && currentPath.parentPath.parentPath.isCallExpression()
+        ) {
+          const memberExpr = currentPath.parentPath.node;
+          if (t.isIdentifier(memberExpr.property) && memberExpr.property.name === 'catch') {
+            isHandled = true;
+            break;
+          }
+          currentPath = currentPath.parentPath.parentPath;
+        }
+
+        // Check if inside a try/catch block
+        if (!isHandled) {
+          const tryStatement = path.findParent(p => p.isTryStatement());
+          if (tryStatement) {
+            isHandled = true;
+          }
+        }
+
+        if (!isHandled) {
+          const result: AnalysisResult = {
+            type: 'UNHANDLED_FETCH',
+            severity: 'high',
+            line: path.node.loc?.start.line ?? -1,
+            suggestion: 'Add a .catch() block or wrap the await fetch() in a try/catch block to handle network errors.'
+          };
+
+          state.report({
+            ruleId: result.type,
+            severity: 'error',
+            message: 'Unhandled fetch() call. Network requests can fail and should have error handling.',
+            action: result.suggestion,
+            line: result.line,
+            column: path.node.loc?.start.column ?? -1
+          });
+        }
+      }
     }
   }
 };
