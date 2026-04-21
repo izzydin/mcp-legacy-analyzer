@@ -15,3 +15,17 @@ export const ComponentStructureInputSchema = z.object({
 });
 
 export type ComponentStructureInput = z.infer<typeof ComponentStructureInputSchema>;
+
+export type AntiPatternType = 
+  | 'STRING_REF' 
+  | 'FIND_DOM_NODE' 
+  | 'MISSING_KEY' 
+  | 'UNHANDLED_FETCH' 
+  | 'UNUSED_PROPTYPE';
+
+export interface AnalysisResult {
+  type: AntiPatternType;
+  severity: 'low' | 'medium' | 'high';
+  line: number;
+  suggestion: string;
+}

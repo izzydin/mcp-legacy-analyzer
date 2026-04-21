@@ -20,7 +20,8 @@ export const GhostHunterRule: AnalysisRule = {
         if (replacement) {
           state.report({
             ruleId: 'ghost-hunter',
-            message: `The lifecycle method '${methodName}' is deprecated and unsafe for React 18 Concurrent Mode. It can lead to bugs with async rendering. Recommended replacement: ${replacement}.`,
+            message: `The lifecycle method '${methodName}' is deprecated and unsafe for React 18 Concurrent Mode. It can lead to bugs with async rendering.`,
+            action: `Replace with ${replacement}.`,
             severity: 'warning',
             line: path.node.loc?.start.line ?? -1,
             column: path.node.loc?.start.column ?? -1

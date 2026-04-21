@@ -94,7 +94,8 @@ export const ConcurrentScoutRule: AnalysisRule = {
         state.report({
           ruleId: 'concurrent-scout',
           severity: 'suggestion',
-          message: "Performance: State '" + stateName + "' is updated via complex transformations and passed to a heavy component <" + heavyComponentName + ">. Consider wrapping the '" + setterName + "' update in 'startTransition' to prevent UI blocking, or use 'useDeferredValue(" + stateName + ")' to prioritize rendering.",
+          message: "Performance: State '" + stateName + "' is updated via complex transformations and passed to a heavy component <" + heavyComponentName + ">.",
+          action: "Consider wrapping the '" + setterName + "' update in 'startTransition' to prevent UI blocking, or use 'useDeferredValue(" + stateName + ")' to prioritize rendering.",
           line: heavyComponentLine,
           column: heavyComponentCol
         });

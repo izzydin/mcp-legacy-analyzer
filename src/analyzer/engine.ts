@@ -5,6 +5,7 @@ import { ComponentVisitor, ComponentMetadata } from './visitors/ComponentVisitor
 export interface Diagnostic {
   ruleId: string;
   message: string;
+  action?: string;
   severity: 'error' | 'warning' | 'suggestion';
   line: number;
   column: number;

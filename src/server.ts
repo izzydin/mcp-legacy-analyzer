@@ -8,6 +8,10 @@ import {
 import { AnalyzeInputSchema, ComponentStructureInputSchema } from './types/schemas.js';
 import { parseSourceCode } from './utils/parser.js';
 import { ComponentVisitor } from './analyzer/visitors/ComponentVisitor.js';
+import { AnalysisEngine } from './analyzer/engine.js';
+import { GhostHunterRule } from './analyzer/rules/GhostHunterRule.js';
+import { ConcurrentScoutRule } from './analyzer/rules/ConcurrentScoutRule.js';
+import { Reporter } from './utils/reporter.js';
 import fs from 'fs';
 
 export class AnalyzerServer {
@@ -83,9 +87,43 @@ export class AnalyzerServer {
         if (!input.success) {
           throw new McpError(ErrorCode.InvalidParams, `Invalid arguments: ${input.error.message}`);
         }
-        return {
-          content: [{ type: 'text', text: 'Hola Jack, estoy listo para analizar tu código legacy' }],
-        };
+
+        let sourceCode = input.data.code;
+        if (!sourceCode && input.data.filePath) {
+          try {
+            sourceCode = fs.readFileSync(input.data.filePath, 'utf-8');
+          } catch (err: any) {
+             throw new McpError(ErrorCode.InvalidParams, `Failed to read file: ${err.message}`);
+          }
+        }
+
+        try {
+          const ast = parseSourceCode(sourceCode!);
+          const engine = new AnalysisEngine();
+          engine.registerRules([GhostHunterRule, ConcurrentScoutRule]);
+          
+          const context = engine.execute(ast);
+          const report = Reporter.generateHealthReport(context.diagnostics);
+
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        } catch (err: any) {
+          // Gracefully handle syntax errors
+          const errorReport = Reporter.generateHealthReport([{
+            ruleId: 'parse-error',
+            severity: 'error',
+            message: `Syntax Error preventing analysis: ${err.message}`,
+            action: 'Fix the syntax error and re-run the analyzer.',
+            line: err.loc?.line ?? 0,
+            column: err.loc?.column ?? 0
+          }]);
+
+          return {
+            content: [{ type: 'text', text: errorReport }],
+            isError: true
+          };
+        }
       }
 
       if (request.params.name === 'analyze_component_structure') {
