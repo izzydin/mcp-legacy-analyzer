@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
 export const AnalyzeInputSchema = z.object({
-  code: z.string(),
+  code: z.string().optional(),
   filePath: z.string().optional(),
+}).refine(data => data.code || data.filePath, {
+  message: "Either 'code' or 'filePath' must be provided."
 });
 
 export type AnalyzeInput = z.infer<typeof AnalyzeInputSchema>;

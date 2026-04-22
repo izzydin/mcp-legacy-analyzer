@@ -65,6 +65,31 @@ describe('ConcurrentScoutRule', () => {
     expect(context.diagnostics[0].message).toContain('<DataGrid>');
   });
 
+  it('should flag state updated in a while loop and passed to a List component', () => {
+    const code = `
+      function WhileSearch() {
+        const [results, setResults] = useState([]);
+
+        const performSearch = () => {
+          let temp = [];
+          let i = 0;
+          while (i < 100) {
+            temp.push(i);
+            i++;
+          }
+          setResults(temp);
+        };
+
+        return <SearchResultsList data={results} />;
+      }
+    `;
+
+    const ast = parseCode(code);
+    const context = engine.execute(ast);
+
+    expect(context.diagnostics).toHaveLength(1);
+  });
+
   it('should NOT flag state if passed to a heavy component but NOT updated via complex ops', () => {
     const code = `
       function SimpleList() {

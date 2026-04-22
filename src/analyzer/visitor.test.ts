@@ -109,6 +109,59 @@ describe('AntiPatternVisitorRule', () => {
     expect(context.diagnostics[0].message).toContain("Required prop 'age' is declared");
   });
 
+  it('should NOT flag fetch with try/catch', () => {
+    const code = `
+      async function fetchData() {
+        try {
+          await fetch('/api/data');
+        } catch(e) {
+        }
+      }
+    `;
+
+    const ast = parseCode(code);
+    const context = engine.execute(ast);
+
+    expect(context.diagnostics).toHaveLength(0);
+  });
+
+  it('should NOT flag MISSING_KEY when key is present', () => {
+    const code = `
+      function List() {
+        return (
+          <div>
+            {items.map(item => <span key={item.id}>{item.name}</span>)}
+          </div>
+        );
+      }
+    `;
+
+    const ast = parseCode(code);
+    const context = engine.execute(ast);
+
+    expect(context.diagnostics).toHaveLength(0);
+  });
+
+  it('should flag MISSING_KEY when returning JSX in a block statement', () => {
+    const code = `
+      function List() {
+        return (
+          <div>
+            {items.map(item => {
+              return <span>{item}</span>;
+            })}
+          </div>
+        );
+      }
+    `;
+
+    const ast = parseCode(code);
+    const context = engine.execute(ast);
+
+    expect(context.diagnostics).toHaveLength(1);
+    expect(context.diagnostics[0].ruleId).toBe('MISSING_KEY');
+  });
+
   it('should flag UNUSED_PROPTYPE in Class Components', () => {
     const code = `
       class MyClassComp extends React.Component {

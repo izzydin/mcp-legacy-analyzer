@@ -128,5 +128,43 @@ describe('ComponentVisitor', () => {
       expect(components).toEqual([]);
     });
   });
+  describe('Edge Cases', () => {
+    it('should identify ClassExpression assigned to a variable', () => {
+      const code = `
+        const MyClass = class extends React.Component {
+          render() { return <div>Test</div>; }
+        };
+      `;
+      const ast = parseSourceCode(code);
+      const components = ComponentVisitor.extractComponents(ast);
+      expect(components).toHaveLength(1);
+      expect(components[0].name).toBe('MyClass');
+      expect(components[0].type).toBe('Class');
+    });
 
+    it('should identify FunctionExpression assigned to a variable', () => {
+      const code = `
+        const MyFunc = function() {
+          return <>Fragment</>;
+        };
+      `;
+      const ast = parseSourceCode(code);
+      const components = ComponentVisitor.extractComponents(ast);
+      expect(components).toHaveLength(1);
+      expect(components[0].name).toBe('MyFunc');
+      expect(components[0].type).toBe('Functional');
+    });
+
+    it('should identify ArrowFunctionExpression assigned to an object property', () => {
+      const code = `
+        const obj = {};
+        obj.MyArrow = () => <div>Prop</div>;
+      `;
+      const ast = parseSourceCode(code);
+      const components = ComponentVisitor.extractComponents(ast);
+      expect(components).toHaveLength(1);
+      expect(components[0].name).toBe('MyArrow');
+      expect(components[0].type).toBe('Functional');
+    });
+  });
 });

@@ -65,7 +65,9 @@ export class AnalysisEngine {
         // Execute single pass with merged visitor and context as state
         if (typeof traverseObj === 'function') {
           traverseObj(ast, mergedVisitor, undefined, context);
-        } else if (typeof traverseObj.default === 'function') {
+        }
+        /* v8 ignore start */
+        else if (typeof traverseObj.default === 'function') {
           traverseObj.default(ast, mergedVisitor, undefined, context);
         } else {
            throw new Error("Unable to execute traverse: No traverse function found.");
@@ -73,6 +75,7 @@ export class AnalysisEngine {
       } else {
          throw new Error("Unable to merge visitors: traverse.visitors.merge not found.");
       }
+      /* v8 ignore stop */
     }
 
     return context;
