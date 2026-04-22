@@ -2,6 +2,65 @@ import { AnalysisRule, Context } from './engine.js';
 import * as t from '@babel/types';
 import { AnalysisResult } from '../types/schemas.js';
 
+function processPropTypes(propTypesObject: t.ObjectExpression, componentPath: any, state: Context) {
+  const requiredProps: { name: string; line: number; column: number }[] = [];
+  
+  for (const prop of propTypesObject.properties) {
+    if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
+      const propName = prop.key.name;
+      let isRequired = false;
+      let currentVal = prop.value;
+      if (t.isMemberExpression(currentVal)) {
+        if (t.isIdentifier(currentVal.property) && currentVal.property.name === 'isRequired') {
+          isRequired = true;
+        }
+      }
+      
+      if (isRequired) {
+        requiredProps.push({
+          name: propName,
+          line: prop.loc?.start.line ?? -1,
+          column: prop.loc?.start.column ?? -1
+        });
+      }
+    }
+  }
+
+  if (requiredProps.length === 0) return;
+
+  const usedIdentifiers = new Set<string>();
+  componentPath.traverse({
+    ClassProperty(p: any) {
+      if (t.isIdentifier(p.node.key) && p.node.key.name === 'propTypes') {
+        p.skip();
+      }
+    },
+    Identifier(p: any) {
+      usedIdentifiers.add(p.node.name);
+    }
+  });
+
+  for (const reqProp of requiredProps) {
+    if (!usedIdentifiers.has(reqProp.name)) {
+      const result: AnalysisResult = {
+        type: 'UNUSED_PROPTYPE',
+        severity: 'low',
+        line: reqProp.line,
+        suggestion: `Remove the unused propType '${reqProp.name}' or implement its usage.`
+      };
+
+      state.report({
+        ruleId: result.type,
+        severity: 'suggestion',
+        message: `Required prop '${reqProp.name}' is declared in propTypes but never accessed in the component.`,
+        action: result.suggestion,
+        line: result.line,
+        column: reqProp.column
+      });
+    }
+  }
+}
+
 /**
  * We map the new schema AnalysisResult fields to our internal engine's Diagnostic structure.
  * This ensures the results are pushed to the central analysis array (Context.diagnostics).
@@ -166,6 +225,27 @@ export const AntiPatternVisitorRule: AnalysisRule = {
             line: result.line,
             column: path.node.loc?.start.column ?? -1
           });
+        }
+      }
+    },
+    AssignmentExpression(path, state: Context) {
+      const left = path.node.left;
+      const right = path.node.right;
+      if (t.isMemberExpression(left) && t.isIdentifier(left.property) && left.property.name === 'propTypes' && t.isObjectExpression(right)) {
+        if (t.isIdentifier(left.object)) {
+          const compName = left.object.name;
+          const binding = path.scope.getBinding(compName);
+          if (binding && binding.path) {
+            processPropTypes(right, binding.path, state);
+          }
+        }
+      }
+    },
+    ClassProperty(path, state: Context) {
+      if (t.isIdentifier(path.node.key) && path.node.key.name === 'propTypes' && path.node.static && path.node.value && t.isObjectExpression(path.node.value)) {
+        const classPath = path.parentPath.parentPath;
+        if (classPath && (classPath.isClassDeclaration() || classPath.isClassExpression())) {
+          processPropTypes(path.node.value, classPath, state);
         }
       }
     }
