@@ -103,7 +103,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           type: 'FIND_DOM_NODE',
           severity: 'high',
           line: getSafeLineNumber(path.node),
-          suggestion: 'Pass a ref directly to the DOM element instead.'
+          suggestion: 'Strict Mode Violation: "findDOMNode" is deprecated and breaks in Concurrent Mode. Use React refs to access DOM elements directly.'
         };
 
         state.report({
@@ -163,7 +163,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
                     type: 'MISSING_KEY',
                     severity: 'high',
                     line: getSafeLineNumber(node),
-                    suggestion: 'Provide a unique "key" prop for elements in a list. Avoid array indices.'
+                    suggestion: 'Reconciliation Warning: Each list item requires a unique "key" prop. Avoid using array indices as they can cause UI bugs and performance degradation during re-renders.'
                   };
 
                   state.report({
@@ -215,7 +215,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
             type: 'UNHANDLED_FETCH',
             severity: 'high',
             line: getSafeLineNumber(path.node),
-            suggestion: 'Add a .catch() block or wrap the await fetch() in a try/catch block to handle network errors.'
+            suggestion: 'Resilience Error: This fetch call lacks error handling. Add a ".catch()" block or a try/catch wrapper to prevent silent failures and improve user feedback.'
           };
 
           state.report({

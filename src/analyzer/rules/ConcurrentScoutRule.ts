@@ -96,7 +96,7 @@ export const ConcurrentScoutRule: AnalysisRule = {
           ruleId: 'concurrent-scout',
           severity: 'suggestion',
           message: "Performance: State '" + stateName + "' is updated via complex transformations and passed to a heavy component <" + heavyComponentName + ">.",
-          action: "Consider wrapping the '" + setterName + "' update in 'startTransition' to prevent UI blocking, or use 'useDeferredValue(" + stateName + ")' to prioritize rendering.",
+          action: `React 18+: Heavy state updates in "${setterName}" can block the UI. Wrap in "startTransition" or use "useDeferredValue(${stateName})" to keep the interface responsive during concurrent rendering.`,
           line: heavyComponentLine,
           column: heavyComponentCol
         });

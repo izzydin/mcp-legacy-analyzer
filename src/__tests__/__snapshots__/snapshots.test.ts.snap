@@ -10,15 +10,15 @@ exports[`Museum of Code: Phase 3 Engine Snapshot Tests > should generate an accu
 
 [⚠️ Line 30]: [WARNING] [ghost-hunter]
    Issue:  The lifecycle method 'UNSAFE_componentWillMount' is deprecated and unsafe for React 18 Concurrent Mode. It can lead to bugs with async rendering.
-   Action: Replace with componentDidMount or constructor.
+   Action: Deprecated Lifecycle: Refactor "UNSAFE_componentWillMount" to "useEffect" or "constructor". Avoid "UNSAFE_" prefixes as they are a temporary patch, not a long-term fix for React 18+.
 
 [❌ Line 34]: [ERROR] [UNHANDLED_FETCH]
    Issue:  Unhandled fetch() call. Network requests can fail and should have error handling.
-   Action: Add a .catch() block or wrap the await fetch() in a try/catch block to handle network errors.
+   Action: Resilience Error: This fetch call lacks error handling. Add a ".catch()" block or a try/catch wrapper to prevent silent failures and improve user feedback.
 
 [❌ Line 41]: [ERROR] [FIND_DOM_NODE]
    Issue:  ReactDOM.findDOMNode is deprecated in Strict Mode.
-   Action: Pass a ref directly to the DOM element instead.
+   Action: Strict Mode Violation: "findDOMNode" is deprecated and breaks in Concurrent Mode. Use React refs to access DOM elements directly.
 
 [❌ Line 53]: [ERROR] [STRING_REF]
    Issue:  String refs (e.g., ref="input") are deprecated and will be removed.
@@ -26,7 +26,7 @@ exports[`Museum of Code: Phase 3 Engine Snapshot Tests > should generate an accu
 
 [❌ Line 58]: [ERROR] [MISSING_KEY]
    Issue:  Missing "key" prop for element returned from .map() inside JSX.
-   Action: Provide a unique "key" prop for elements in a list. Avoid array indices.
+   Action: Reconciliation Warning: Each list item requires a unique "key" prop. Avoid using array indices as they can cause UI bugs and performance degradation during re-renders.
 
 Keep up the great work! Let's get this codebase ready for React 18+."
 `;
@@ -37,7 +37,7 @@ exports[`Museum of Code: Phase 3 Engine Snapshot Tests > should generate an accu
 
 [💡 Line 24]: [SUGGESTION] [concurrent-scout]
    Issue:  Performance: State 'dataList' is updated via complex transformations and passed to a heavy component <DataGrid>.
-   Action: Consider wrapping the 'setDataList' update in 'startTransition' to prevent UI blocking, or use 'useDeferredValue(dataList)' to prioritize rendering.
+   Action: React 18+: Heavy state updates in "setDataList" can block the UI. Wrap in "startTransition" or use "useDeferredValue(dataList)" to keep the interface responsive during concurrent rendering.
 
 Keep up the great work! Let's get this codebase ready for React 18+."
 `;

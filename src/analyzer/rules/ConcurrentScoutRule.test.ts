@@ -41,8 +41,8 @@ describe('ConcurrentScoutRule', () => {
       ruleId: 'concurrent-scout',
       severity: 'suggestion'
     });
-    expect(context.diagnostics[0].action).toContain("Consider wrapping the 'setResults' update in 'startTransition'");
-    expect(context.diagnostics[0].action).toContain('useDeferredValue(results)');
+    expect(context.diagnostics[0].action).toContain('startTransition');
+    expect(context.diagnostics[0].action).toContain('useDeferredValue');
   });
 
   it('should flag state updated via array map and passed to a Grid component', () => {
