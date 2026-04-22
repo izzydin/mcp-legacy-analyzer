@@ -1,6 +1,7 @@
 import { AnalysisRule, Context } from './engine.js';
 import * as t from '@babel/types';
 import { AnalysisResult } from '../types/schemas.js';
+import { getSafeLineNumber, getSafeColumnNumber } from '../utils/ast-helpers.js';
 
 function processPropTypes(propTypesObject: t.ObjectExpression, componentPath: any, state: Context) {
   const requiredProps: { name: string; line: number; column: number }[] = [];
@@ -19,8 +20,8 @@ function processPropTypes(propTypesObject: t.ObjectExpression, componentPath: an
       if (isRequired) {
         requiredProps.push({
           name: propName,
-          line: prop.loc?.start.line ?? -1,
-          column: prop.loc?.start.column ?? -1
+          line: getSafeLineNumber(prop),
+          column: getSafeColumnNumber(prop)
         });
       }
     }
@@ -75,7 +76,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           const result: AnalysisResult = {
             type: 'STRING_REF',
             severity: 'high',
-            line: path.node.loc?.start.line ?? -1,
+            line: getSafeLineNumber(path.node),
             suggestion: 'Use callback refs or React.createRef()/useRef() instead.'
           };
 
@@ -85,7 +86,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
             message: 'String refs (e.g., ref="input") are deprecated and will be removed.',
             action: result.suggestion,
             line: result.line,
-            column: path.node.loc?.start.column ?? -1
+            column: getSafeColumnNumber(path.node)
           });
         }
       }
@@ -101,7 +102,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
         const result: AnalysisResult = {
           type: 'FIND_DOM_NODE',
           severity: 'high',
-          line: path.node.loc?.start.line ?? -1,
+          line: getSafeLineNumber(path.node),
           suggestion: 'Pass a ref directly to the DOM element instead.'
         };
 
@@ -111,7 +112,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           message: 'ReactDOM.findDOMNode is deprecated in Strict Mode.',
           action: result.suggestion,
           line: result.line,
-          column: path.node.loc?.start.column ?? -1
+          column: getSafeColumnNumber(path.node)
         });
       }
 
@@ -161,7 +162,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
                   const result: AnalysisResult = {
                     type: 'MISSING_KEY',
                     severity: 'high',
-                    line: node.loc?.start.line ?? -1,
+                    line: getSafeLineNumber(node),
                     suggestion: 'Provide a unique "key" prop for elements in a list. Avoid array indices.'
                   };
 
@@ -171,7 +172,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
                     message: 'Missing "key" prop for element returned from .map() inside JSX.',
                     action: result.suggestion,
                     line: result.line,
-                    column: node.loc?.start.column ?? -1
+                    column: getSafeColumnNumber(node)
                   });
                 }
               }
@@ -213,7 +214,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
           const result: AnalysisResult = {
             type: 'UNHANDLED_FETCH',
             severity: 'high',
-            line: path.node.loc?.start.line ?? -1,
+            line: getSafeLineNumber(path.node),
             suggestion: 'Add a .catch() block or wrap the await fetch() in a try/catch block to handle network errors.'
           };
 
@@ -223,7 +224,7 @@ export const AntiPatternVisitorRule: AnalysisRule = {
             message: 'Unhandled fetch() call. Network requests can fail and should have error handling.',
             action: result.suggestion,
             line: result.line,
-            column: path.node.loc?.start.column ?? -1
+            column: getSafeColumnNumber(path.node)
           });
         }
       }

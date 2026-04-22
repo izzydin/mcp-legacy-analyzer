@@ -1,5 +1,6 @@
 import { AnalysisRule, Context } from '../engine.js';
 import * as t from '@babel/types';
+import { getSafeLineNumber, getSafeColumnNumber } from '../../utils/ast-helpers.js';
 
 export const GhostHunterRule: AnalysisRule = {
   id: 'ghost-hunter',
@@ -23,8 +24,8 @@ export const GhostHunterRule: AnalysisRule = {
             message: `The lifecycle method '${methodName}' is deprecated and unsafe for React 18 Concurrent Mode. It can lead to bugs with async rendering.`,
             action: `Replace with ${replacement}.`,
             severity: 'warning',
-            line: path.node.loc?.start.line ?? -1,
-            column: path.node.loc?.start.column ?? -1
+            line: getSafeLineNumber(path.node),
+            column: getSafeColumnNumber(path.node)
           });
         }
       }

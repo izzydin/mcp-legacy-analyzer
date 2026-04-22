@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parse } from '@babel/parser';
 import { AnalysisEngine } from './engine.js';
+import { getSafeLineNumber, getSafeColumnNumber } from '../utils/ast-helpers.js';
 describe('AnalysisEngine', () => {
     let engine;
     beforeEach(() => {
@@ -46,8 +47,8 @@ describe('AnalysisEngine', () => {
                             ruleId: 'no-console',
                             message: 'Unexpected console statement',
                             severity: 'warning',
-                            line: path.node.loc?.start.line ?? -1,
-                            column: path.node.loc?.start.column ?? -1
+                            line: getSafeLineNumber(path.node),
+                            column: getSafeColumnNumber(path.node)
                         });
                     }
                 }
@@ -61,8 +62,8 @@ describe('AnalysisEngine', () => {
                         ruleId: 'no-debugger',
                         message: 'Unexpected debugger statement',
                         severity: 'error',
-                        line: path.node.loc?.start.line ?? -1,
-                        column: path.node.loc?.start.column ?? -1
+                        line: getSafeLineNumber(path.node),
+                        column: getSafeColumnNumber(path.node)
                     });
                 }
             }

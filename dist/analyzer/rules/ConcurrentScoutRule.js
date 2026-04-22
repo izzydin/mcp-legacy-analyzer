@@ -1,4 +1,5 @@
 import * as t from '@babel/types';
+import { getSafeLineNumber, getSafeColumnNumber } from '../../utils/ast-helpers.js';
 export const ConcurrentScoutRule = {
     id: 'concurrent-scout',
     visitor: {
@@ -36,8 +37,8 @@ export const ConcurrentScoutRule = {
                             if (/(List|Grid|Table)/i.test(compName)) {
                                 passedToHeavyComponent = true;
                                 heavyComponentName = compName;
-                                heavyComponentLine = refPath.node.loc?.start.line ?? -1;
-                                heavyComponentCol = refPath.node.loc?.start.column ?? -1;
+                                heavyComponentLine = getSafeLineNumber(refPath.node);
+                                heavyComponentCol = getSafeColumnNumber(refPath.node);
                                 break;
                             }
                         }

@@ -1,4 +1,58 @@
 import * as t from '@babel/types';
+import { getSafeLineNumber, getSafeColumnNumber } from '../utils/ast-helpers.js';
+function processPropTypes(propTypesObject, componentPath, state) {
+    const requiredProps = [];
+    for (const prop of propTypesObject.properties) {
+        if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
+            const propName = prop.key.name;
+            let isRequired = false;
+            let currentVal = prop.value;
+            if (t.isMemberExpression(currentVal)) {
+                if (t.isIdentifier(currentVal.property) && currentVal.property.name === 'isRequired') {
+                    isRequired = true;
+                }
+            }
+            if (isRequired) {
+                requiredProps.push({
+                    name: propName,
+                    line: getSafeLineNumber(prop),
+                    column: getSafeColumnNumber(prop)
+                });
+            }
+        }
+    }
+    if (requiredProps.length === 0)
+        return;
+    const usedIdentifiers = new Set();
+    componentPath.traverse({
+        ClassProperty(p) {
+            if (t.isIdentifier(p.node.key) && p.node.key.name === 'propTypes') {
+                p.skip();
+            }
+        },
+        Identifier(p) {
+            usedIdentifiers.add(p.node.name);
+        }
+    });
+    for (const reqProp of requiredProps) {
+        if (!usedIdentifiers.has(reqProp.name)) {
+            const result = {
+                type: 'UNUSED_PROPTYPE',
+                severity: 'low',
+                line: reqProp.line,
+                suggestion: `Remove the unused propType '${reqProp.name}' or implement its usage.`
+            };
+            state.report({
+                ruleId: result.type,
+                severity: 'suggestion',
+                message: `Required prop '${reqProp.name}' is declared in propTypes but never accessed in the component.`,
+                action: result.suggestion,
+                line: result.line,
+                column: reqProp.column
+            });
+        }
+    }
+}
 /**
  * We map the new schema AnalysisResult fields to our internal engine's Diagnostic structure.
  * This ensures the results are pushed to the central analysis array (Context.diagnostics).
@@ -12,7 +66,7 @@ export const AntiPatternVisitorRule = {
                     const result = {
                         type: 'STRING_REF',
                         severity: 'high',
-                        line: path.node.loc?.start.line ?? -1,
+                        line: getSafeLineNumber(path.node),
                         suggestion: 'Use callback refs or React.createRef()/useRef() instead.'
                     };
                     state.report({
@@ -21,7 +75,7 @@ export const AntiPatternVisitorRule = {
                         message: 'String refs (e.g., ref="input") are deprecated and will be removed.',
                         action: result.suggestion,
                         line: result.line,
-                        column: path.node.loc?.start.column ?? -1
+                        column: getSafeColumnNumber(path.node)
                     });
                 }
             }
@@ -34,7 +88,7 @@ export const AntiPatternVisitorRule = {
                 const result = {
                     type: 'FIND_DOM_NODE',
                     severity: 'high',
-                    line: path.node.loc?.start.line ?? -1,
+                    line: getSafeLineNumber(path.node),
                     suggestion: 'Pass a ref directly to the DOM element instead.'
                 };
                 state.report({
@@ -43,7 +97,7 @@ export const AntiPatternVisitorRule = {
                     message: 'ReactDOM.findDOMNode is deprecated in Strict Mode.',
                     action: result.suggestion,
                     line: result.line,
-                    column: path.node.loc?.start.column ?? -1
+                    column: getSafeColumnNumber(path.node)
                 });
             }
             // Check for .map() calls inside JSX
@@ -84,7 +138,7 @@ export const AntiPatternVisitorRule = {
                                     const result = {
                                         type: 'MISSING_KEY',
                                         severity: 'high',
-                                        line: node.loc?.start.line ?? -1,
+                                        line: getSafeLineNumber(node),
                                         suggestion: 'Provide a unique "key" prop for elements in a list. Avoid array indices.'
                                     };
                                     state.report({
@@ -93,7 +147,7 @@ export const AntiPatternVisitorRule = {
                                         message: 'Missing "key" prop for element returned from .map() inside JSX.',
                                         action: result.suggestion,
                                         line: result.line,
-                                        column: node.loc?.start.column ?? -1
+                                        column: getSafeColumnNumber(node)
                                     });
                                 }
                             }
@@ -128,7 +182,7 @@ export const AntiPatternVisitorRule = {
                     const result = {
                         type: 'UNHANDLED_FETCH',
                         severity: 'high',
-                        line: path.node.loc?.start.line ?? -1,
+                        line: getSafeLineNumber(path.node),
                         suggestion: 'Add a .catch() block or wrap the await fetch() in a try/catch block to handle network errors.'
                     };
                     state.report({
@@ -137,8 +191,29 @@ export const AntiPatternVisitorRule = {
                         message: 'Unhandled fetch() call. Network requests can fail and should have error handling.',
                         action: result.suggestion,
                         line: result.line,
-                        column: path.node.loc?.start.column ?? -1
+                        column: getSafeColumnNumber(path.node)
                     });
+                }
+            }
+        },
+        AssignmentExpression(path, state) {
+            const left = path.node.left;
+            const right = path.node.right;
+            if (t.isMemberExpression(left) && t.isIdentifier(left.property) && left.property.name === 'propTypes' && t.isObjectExpression(right)) {
+                if (t.isIdentifier(left.object)) {
+                    const compName = left.object.name;
+                    const binding = path.scope.getBinding(compName);
+                    if (binding && binding.path) {
+                        processPropTypes(right, binding.path, state);
+                    }
+                }
+            }
+        },
+        ClassProperty(path, state) {
+            if (t.isIdentifier(path.node.key) && path.node.key.name === 'propTypes' && path.node.static && path.node.value && t.isObjectExpression(path.node.value)) {
+                const classPath = path.parentPath.parentPath;
+                if (classPath && (classPath.isClassDeclaration() || classPath.isClassExpression())) {
+                    processPropTypes(path.node.value, classPath, state);
                 }
             }
         }

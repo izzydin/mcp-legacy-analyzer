@@ -29,7 +29,7 @@ describe('GhostHunterRule', () => {
             severity: 'warning',
         });
         expect(context.diagnostics[0].message).toContain('deprecated and unsafe for React 18 Concurrent Mode');
-        expect(context.diagnostics[0].message).toContain('componentDidMount or constructor');
+        expect(context.diagnostics[0].action).toContain('componentDidMount or constructor');
     });
     it('should flag componentWillReceiveProps', () => {
         const code = `
@@ -43,7 +43,7 @@ describe('GhostHunterRule', () => {
         const ast = parseCode(code);
         const context = engine.execute(ast);
         expect(context.diagnostics).toHaveLength(1);
-        expect(context.diagnostics[0].message).toContain('static getDerivedStateFromProps');
+        expect(context.diagnostics[0].action).toContain('static getDerivedStateFromProps');
     });
     it('should flag componentWillUpdate', () => {
         const code = `
@@ -57,7 +57,7 @@ describe('GhostHunterRule', () => {
         const ast = parseCode(code);
         const context = engine.execute(ast);
         expect(context.diagnostics).toHaveLength(1);
-        expect(context.diagnostics[0].message).toContain('getSnapshotBeforeUpdate and componentDidUpdate');
+        expect(context.diagnostics[0].action).toContain('getSnapshotBeforeUpdate');
     });
     it('should flag UNSAFE_ prefixed methods', () => {
         const code = `

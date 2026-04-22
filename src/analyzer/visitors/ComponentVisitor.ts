@@ -1,5 +1,6 @@
 import traverse, { NodePath, Visitor } from '@babel/traverse';
 import * as t from '@babel/types';
+import { getSafeLineNumber, getSafeEndLineNumber } from '../../utils/ast-helpers.js';
 
 export interface ComponentMetadata {
   name: string;
@@ -146,8 +147,8 @@ export class ComponentVisitor {
     return {
       name,
       type,
-      startLine: node.loc?.start.line ?? -1,
-      endLine: node.loc?.end.line ?? -1,
+      startLine: getSafeLineNumber(node),
+      endLine: getSafeEndLineNumber(node),
     };
   }
 }
